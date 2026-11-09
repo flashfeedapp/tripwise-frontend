@@ -1,0 +1,525 @@
+@if (destination; as place) {
+  <app-destination-backdrop [destination]="place" />
+}
+
+<div class="page-shell trip-flow-shell trip-results-shell immersive-flow">
+  <header class="trip-results-topbar">
+    <a class="brand" routerLink="/" aria-label="TripWise India home">
+      <span class="brandmark" aria-hidden="true">✦</span>
+      <span>TripWise India<small>PLAN · EXPLORE · EXPERIENCE</small></span>
+    </a>
+    <nav class="trip-site-navigation" aria-label="Main navigation">
+      <a routerLink="/">Home</a>
+      <a routerLink="/" fragment="discover">Destinations</a>
+      @if (request) {
+        <a [routerLink]="['/destinations', request.destinationId, 'plans']">Plan your trip</a>
+      }
+    </nav>
+    <span class="trip-ready"><span aria-hidden="true"></span>Your Trip Is Ready</span>
+  </header>
+
+  <main class="trip-results-content">
+    @if (loading) {
+      <section class="api-state trip-results-state" aria-live="polite">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <p>Preparing your trip experience…</p>
+      </section>
+    } @else if (errorMessage) {
+      <section class="api-state error-state trip-results-state" role="alert">
+        <h1>We couldn’t calculate this trip</h1>
+        <p>{{ errorMessage }}</p>
+        <div class="result-actions">
+          <button class="primary" type="button" (click)="retry()">Try again</button>
+          @if (request) {
+            <a
+              class="secondary button-link"
+              [routerLink]="['/destinations', request.destinationId, 'plans']"
+              [queryParams]="{ startingCity: request.startingCity, travellers: request.travellers }"
+              [state]="{ destination }"
+            >Change trip details</a>
+          }
+        </div>
+      </section>
+    } @else if (result; as trip) {
+      <section class="trip-titlebar">
+        <div class="trip-title-copy">
+          <span class="trip-status"><span aria-hidden="true">✦</span> YOUR TRIP IS READY</span>
+          <h1>Explore {{ destination?.name || trip.destinationName }}</h1>
+          <p class="trip-route">{{ trip.startingCity }} <span aria-hidden="true">→</span> {{ destination?.name || trip.destinationName }}</p>
+          @if (destination?.shortDescription) {
+            <p class="trip-tagline">{{ destination?.shortDescription }}</p>
+          } @else if (destination?.contentJson?.introduction) {
+            <p class="trip-tagline">{{ destination?.contentJson?.introduction }}</p>
+          }
+        </div>
+        @if (request) {
+          <a
+            class="trip-edit-link"
+            [routerLink]="['/destinations', request.destinationId, 'plans']"
+            [queryParams]="{ startingCity: trip.startingCity, travellers: trip.travellers }"
+            [state]="{ destination }"
+          >
+            <span aria-hidden="true">✎</span> Edit trip
+          </a>
+        }
+        <div class="trip-facts" aria-label="Trip summary">
+          <span><small>FROM</small><strong>{{ trip.startingCity }}</strong></span>
+          <span class="trip-fact-arrow" aria-hidden="true">→</span>
+          <span><small>DESTINATION</small><strong>{{ destination?.name || trip.destinationName }}</strong></span>
+          <span><small>TRAVELLERS</small><strong>{{ trip.travellers }} {{ trip.travellers === 1 ? 'traveller' : 'travellers' }}</strong></span>
+          <span><small>DURATION</small><strong>{{ trip.durationDays }} {{ trip.durationDays === 1 ? 'day' : 'days' }}</strong></span>
+          <span><small>TRIP STYLE</small><strong>{{ formatPlanType(trip.planType) }}</strong></span>
+        </div>
+      </section>
+
+      <nav class="trip-tabs" role="tablist" aria-label="Trip details">
+        @for (tab of tabs; track tab.id) {
+          <button
+            type="button"
+            role="tab"
+            class="trip-tab"
+            [class.active]="activeTab === tab.id"
+            [id]="tab.id + '-tab'"
+            [attr.aria-selected]="activeTab === tab.id"
+            [attr.aria-controls]="tab.id + '-panel'"
+            (click)="selectTab(tab.id)"
+          >
+            <span class="trip-tab-icon" aria-hidden="true">{{ tab.icon }}</span>
+            <span>{{ tab.label }}</span>
+          </button>
+        }
+      </nav>
+
+      <section
+        class="trip-tab-panel"
+        id="overview-panel"
+        role="tabpanel"
+        aria-labelledby="overview-tab"
+        [hidden]="activeTab !== 'overview'"
+      >
+        <div class="trip-section-heading">
+          <div><span class="kicker">YOUR JOURNEY AT A GLANCE</span><h2>Trip overview</h2></div>
+          <p>{{ trip.planTitle }} · {{ trip.durationDays }} {{ trip.durationDays === 1 ? 'day' : 'days' }}</p>
+        </div>
+
+        <div class="overview-grid">
+          <article class="trip-glass-panel overview-intro-panel">
+            <span class="trip-panel-icon" aria-hidden="true">✦</span>
+            <span class="kicker">THE PLAN</span>
+            <h3>{{ trip.planTitle }}</h3>
+            <p>{{ planDetails?.overview || trip.planDescription }}</p>
+            @if (destination?.contentJson?.introduction || destination?.overview) {
+              <div class="overview-destination-copy">
+                <span class="kicker">ABOUT {{ (destination?.name || trip.destinationName).toUpperCase() }}</span>
+                <p>{{ destination?.contentJson?.introduction || destination?.overview }}</p>
+              </div>
+            }
+            @if (destination?.history) {
+              <div class="overview-destination-copy">
+                <span class="kicker">HISTORY & CULTURE</span>
+                <p>{{ destination?.history }}</p>
+              </div>
+            }
+          </article>
+
+          <article class="trip-glass-panel overview-highlights-panel">
+            <span class="trip-panel-icon" aria-hidden="true">✧</span>
+            <span class="kicker">DON’T MISS</span>
+            <h3>Destination highlights</h3>
+            @if (highlights.length > 0) {
+              <ul class="gold-bullet-list">
+                @for (highlight of highlights; track highlight) {
+                  <li>{{ highlight }}</li>
+                }
+              </ul>
+            } @else {
+              <p>Destination highlights were not provided.</p>
+            }
+          </article>
+        </div>
+
+        @if (experiences.length > 0) {
+          <section class="trip-content-section">
+            <div class="trip-section-heading compact">
+              <div><span class="kicker">MAKE IT YOURS</span><h2>Experiences</h2></div>
+            </div>
+            <div class="experience-grid">
+              @for (experience of experiences; track experience.title) {
+                <article class="trip-glass-panel experience-card">
+                  @if (experienceImage(experience.title, experience.imageUrl); as imageUrl) {
+                    <div class="trip-card-photo">
+                      <img [src]="imageUrl" [alt]="experience.title" loading="lazy" (error)="onContentImageError($event)">
+                      <span class="trip-photo-fallback">Photograph unavailable</span>
+                    </div>
+                  }
+                  <div class="experience-copy">
+                    <span class="trip-panel-icon" aria-hidden="true">✧</span>
+                    <h3>{{ experience.title }}</h3>
+                    @if (experience.description) { <p>{{ experience.description }}</p> }
+                  </div>
+                </article>
+              }
+            </div>
+          </section>
+        }
+
+        @if (localFood.length > 0 || bestTimeMonths) {
+          <div class="overview-detail-grid">
+            @if (localFood.length > 0) {
+              <article class="trip-glass-panel">
+                <span class="kicker">A TASTE OF THE REGION</span>
+                <h3>Local food</h3>
+                @for (food of localFood; track food.name) {
+                  <div class="food-item">
+                    <strong>{{ food.name }}</strong>
+                    @if (food.description) { <p>{{ food.description }}</p> }
+                  </div>
+                }
+              </article>
+            }
+            @if (bestTimeMonths) {
+              <article class="trip-glass-panel best-season-panel">
+                <span class="kicker">WHEN TO GO</span>
+                <h3>Best time to visit</h3>
+                <strong>{{ bestTimeMonths }}</strong>
+                @if (bestTimeWeather) { <p>{{ bestTimeWeather }}</p> }
+              </article>
+            }
+          </div>
+        }
+      </section>
+
+      <section
+        class="trip-tab-panel"
+        id="itinerary-panel"
+        role="tabpanel"
+        aria-labelledby="itinerary-tab"
+        [hidden]="activeTab !== 'itinerary'"
+      >
+        <div class="trip-section-heading">
+          <div><span class="kicker">YOUR SELECTED PLAN</span><h2>Day-by-day itinerary</h2></div>
+          <p>{{ trip.planTitle }}</p>
+        </div>
+        @if (itinerary.length > 0) {
+          <div class="itinerary-layout">
+            <div class="itinerary-timeline">
+              @for (day of itinerary; track $index) {
+                <article class="itinerary-day">
+                  <div class="timeline-marker" aria-hidden="true">{{ day.day }}</div>
+                  <div class="trip-glass-panel itinerary-day-panel">
+                    <span class="kicker">DAY {{ day.day }}</span>
+                    @if (day.title) { <h3>{{ day.title }}</h3> }
+                    @if (day.activities?.length) {
+                      <div class="itinerary-activities">
+                        @for (activity of day.activities; track $index) {
+                          <article class="itinerary-activity">
+                            <div class="activity-time">
+                              @if (activity.time) { <span>{{ activity.time }}</span> }
+                              @if (activity.duration) { <small>{{ activity.duration }}</small> }
+                            </div>
+                            <div class="activity-copy">
+                              @if (activity.title) { <h4>{{ activity.title }}</h4> }
+                              @if (activity.attraction) { <span class="activity-attraction">{{ activity.attraction }}</span> }
+                              @if (activity.description) { <p>{{ activity.description }}</p> }
+                              @if (itineraryImage(activity); as imageUrl) {
+                                <div class="trip-card-photo itinerary-photo">
+                                  <img [src]="imageUrl" [alt]="activity.attraction || activity.title || ''" loading="lazy" (error)="onContentImageError($event)">
+                                  <span class="trip-photo-fallback">Photograph unavailable</span>
+                                </div>
+                              }
+                            </div>
+                          </article>
+                        }
+                      </div>
+                    } @else {
+                      <p class="muted-copy">No activities were supplied for this day.</p>
+                    }
+                  </div>
+                </article>
+              }
+            </div>
+            <aside class="trip-glass-panel itinerary-highlights">
+              <span class="kicker">TRIP NOTES</span>
+              <h3>Plan with care</h3>
+              @if (highlights.length > 0) {
+                <h4>Top highlights</h4>
+                <ul class="gold-bullet-list">
+                  @for (highlight of highlights.slice(0, 5); track highlight) { <li>{{ highlight }}</li> }
+                </ul>
+              }
+              @if (planNotes.length > 0) {
+                <h4>Good to know</h4>
+                <ul class="gold-bullet-list">
+                  @for (note of planNotes; track note) { <li>{{ note }}</li> }
+                </ul>
+              }
+            </aside>
+          </div>
+        } @else {
+          <div class="trip-glass-panel empty-trip-panel" role="status">
+            <span class="trip-panel-icon" aria-hidden="true">▤</span>
+            <h3>Itinerary details unavailable</h3>
+            <p>{{ planDetailsErrorMessage || 'The selected plan did not include a day-wise itinerary.' }}</p>
+          </div>
+        }
+      </section>
+
+      <section
+        class="trip-tab-panel"
+        id="transport-panel"
+        role="tabpanel"
+        aria-labelledby="transport-tab"
+        [hidden]="activeTab !== 'transport'"
+      >
+        <div class="trip-section-heading">
+          <div><span class="kicker">RETURNED BY THE TRIP SERVICE</span><h2>Compare transport</h2></div>
+          <p>Only options included in your trip calculation are shown.</p>
+        </div>
+        @if (!hasAnyTransportEstimate && returnedTravelOptions.length > 0) {
+          <div class="trip-glass-panel estimate-notice" role="status">
+            The service returned transport modes but no positive fare estimates. Missing fares are not treated as free travel.
+          </div>
+        }
+        @if (returnedTravelOptions.length > 0) {
+          <div class="transport-options-grid">
+            @for (option of returnedTravelOptions; track option.transportMode) {
+              <article class="trip-glass-panel transport-option-card">
+                <div class="transport-option-heading">
+                  <span class="transport-option-icon" aria-hidden="true">{{ option.transportMode === 'BUS' ? '▰' : option.transportMode === 'TRAIN' ? '▤' : option.transportMode === 'CAR' ? '▱' : '✈' }}</span>
+                  <div><span class="kicker">TRAVEL BY</span><h3>{{ transportLabel(option.transportMode) }}</h3></div>
+                </div>
+                <div class="transport-option-price">
+                  <small>Estimated fare per person</small>
+                  <strong>{{ perPersonTravelCost(option) }}</strong>
+                </div>
+                <div class="transport-option-metrics">
+                  <div><span>All travellers</span><strong>{{ totalTravelCost(option) }}</strong></div>
+                  <div><span>Journey duration</span><strong>{{ journeyDuration(option) }}</strong></div>
+                  @if (hasCompleteTripEstimate(option)) {
+                    <div class="transport-complete-estimate">
+                      <span>Plan + transport · all travellers</span>
+                      <strong>{{ formatCurrency(option.totalEstimatedCost) }}</strong>
+                    </div>
+                  }
+                </div>
+                <span class="estimate-disclaimer">Indicative estimate · confirm before booking</span>
+              </article>
+            }
+          </div>
+        } @else {
+          <div class="trip-glass-panel empty-trip-panel" role="status">
+            <span class="trip-panel-icon" aria-hidden="true">⇄</span>
+            <h3>No transport estimates returned</h3>
+            <p>No transport options were included in the trip calculation. No fares or journey times have been assumed.</p>
+          </div>
+        }
+      </section>
+
+      <section
+        class="trip-tab-panel"
+        id="budget-panel"
+        role="tabpanel"
+        aria-labelledby="budget-tab"
+        [hidden]="activeTab !== 'budget'"
+      >
+        <div class="trip-section-heading">
+          <div><span class="kicker">A CLEAR VIEW OF YOUR ESTIMATE</span><h2>Trip budget</h2></div>
+          <p>{{ trip.travellers }} {{ trip.travellers === 1 ? 'traveller' : 'travellers' }} · transport is shown separately</p>
+        </div>
+        <div class="trip-glass-panel estimate-notice" role="status">
+          The calculator returns stay, food and activity costs below. Local transport is not included in the current API estimate. Intercity transport is separate; a zero fare is shown as unavailable, not free travel.
+        </div>
+        <div class="budget-total-card trip-glass-panel">
+          <div>
+            <span class="kicker">SELECTED PLAN · BEFORE TRANSPORT</span>
+            <strong>{{ formatCurrency(trip.totalTripCost) }}</strong>
+            <small>All travellers · {{ formatCurrency(trip.tripCostPerPerson) }} per person</small>
+          </div>
+          <span class="budget-total-mark" aria-hidden="true">₹</span>
+        </div>
+        <div class="budget-breakdown-grid">
+          <article class="trip-glass-panel budget-line-item">
+            <span class="budget-line-icon" aria-hidden="true">⌂</span>
+            <div><span>Accommodation</span><small>Calculation amount ÷ travellers</small></div>
+            <strong>{{ formatCurrency(perPersonGroupCost(trip.stayCost)) }}<small>/ person</small><small>{{ formatCurrency(trip.stayCost) }} · group</small></strong>
+          </article>
+          <article class="trip-glass-panel budget-line-item">
+            <span class="budget-line-icon" aria-hidden="true">✧</span>
+            <div><span>Food</span><small>Calculation amount ÷ travellers</small></div>
+            <strong>{{ formatCurrency(perPersonGroupCost(trip.foodCost)) }}<small>/ person</small><small>{{ formatCurrency(trip.foodCost) }} · group</small></strong>
+          </article>
+          <article class="trip-glass-panel budget-line-item">
+            <span class="budget-line-icon" aria-hidden="true">◈</span>
+            <div><span>Activities</span><small>Calculation amount ÷ travellers</small></div>
+            <strong>{{ formatCurrency(perPersonGroupCost(trip.activityCost)) }}<small>/ person</small><small>{{ formatCurrency(trip.activityCost) }} · group</small></strong>
+          </article>
+          <article class="trip-glass-panel budget-line-item">
+            <span class="budget-line-icon" aria-hidden="true">⇄</span>
+            <div><span>Local transport</span><small>Not returned by the calculator API</small></div>
+            <strong class="unavailable-value">Not included</strong>
+          </article>
+        </div>
+        <section class="trip-content-section budget-transport-section">
+          <div class="trip-section-heading compact">
+            <div><span class="kicker">NOT INCLUDED IN PLAN TOTAL</span><h2>Transport estimates</h2></div>
+          </div>
+          @if (returnedTravelOptions.length > 0) {
+            <div class="budget-transport-list">
+              @for (option of returnedTravelOptions; track option.transportMode) {
+                <div class="trip-glass-panel budget-transport-row">
+                  <strong>{{ transportLabel(option.transportMode) }}</strong>
+                  <span>{{ perPersonTravelCost(option) }} <small>/ person</small></span>
+                  <span>{{ totalTravelCost(option) }} <small>all travellers</small></span>
+                  @if (hasCompleteTripEstimate(option)) {
+                    <b>Complete trip {{ formatCurrency(option.totalEstimatedCost) }}</b>
+                  } @else {
+                    <b class="unavailable-value">Complete trip estimate unavailable</b>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="trip-glass-panel empty-trip-panel">Transport estimates were not returned.</div>
+          }
+        </section>
+        @if (inclusions.length > 0 || exclusions.length > 0) {
+          <div class="budget-inclusions-grid">
+            @if (inclusions.length > 0) {
+              <article class="trip-glass-panel"><span class="kicker">INCLUDED BY THE PLAN</span><ul class="gold-bullet-list">@for (item of inclusions; track item) { <li>{{ item }}</li> }</ul></article>
+            }
+            @if (exclusions.length > 0) {
+              <article class="trip-glass-panel"><span class="kicker">NOT INCLUDED</span><ul class="gold-bullet-list">@for (item of exclusions; track item) { <li>{{ item }}</li> }</ul></article>
+            }
+          </div>
+        }
+        <p class="budget-fineprint">All amounts are backend-provided indicative estimates. Plan costs and transport costs are kept separate; no missing costs have been filled in.</p>
+      </section>
+
+      <section
+        class="trip-tab-panel travel-guide-panel"
+        id="guide-panel"
+        role="tabpanel"
+        aria-labelledby="guide-tab"
+        [hidden]="activeTab !== 'guide'"
+      >
+        <div class="trip-section-heading">
+          <div><span class="kicker">TRAVEL WELL, LEAVE LIGHTLY</span><h2>{{ destination?.name || trip.destinationName }} travel guide</h2></div>
+          @if (destination) { <span class="guide-state-label">{{ destination.state }}</span> }
+        </div>
+        @if (guideErrorMessage) {
+          <div class="trip-glass-panel guide-load-error" role="alert">
+            <p>Destination information could not be loaded: {{ guideErrorMessage }}</p>
+            <button class="primary" type="button" (click)="retryGuide()">Try destination details again</button>
+          </div>
+        }
+
+        @if (destination?.contentJson?.introduction || destination?.overview) {
+          <article class="trip-glass-panel guide-introduction">
+            <span class="kicker">INTRODUCTION</span>
+            <p>{{ destination?.contentJson?.introduction || destination?.overview }}</p>
+          </article>
+        }
+
+        @if (experiences.length > 0) {
+          <section class="trip-content-section">
+            <div class="trip-section-heading compact">
+              <div><span class="kicker">MAKE TIME FOR</span><h2>Experiences</h2></div>
+            </div>
+            <div class="guide-experience-grid">
+              @for (experience of experiences; track experience.title) {
+                <article class="trip-glass-panel guide-experience-card">
+                  @if (experienceImage(experience.title, experience.imageUrl); as imageUrl) {
+                    <div class="trip-card-photo">
+                      <img [src]="imageUrl" [alt]="experience.title" loading="lazy" (error)="onContentImageError($event)">
+                      <span class="trip-photo-fallback">Photograph unavailable</span>
+                    </div>
+                  }
+                  <div>
+                    <h3>{{ experience.title }}</h3>
+                    @if (experience.description) { <p>{{ experience.description }}</p> }
+                  </div>
+                </article>
+              }
+            </div>
+          </section>
+        }
+
+        <div class="guide-content-grid">
+          @if (localFood.length > 0) {
+            <article class="trip-glass-panel guide-content-card">
+              <span class="trip-panel-icon" aria-hidden="true">✧</span>
+              <span class="kicker">LOCAL FOOD</span>
+              @for (food of localFood; track food.name) {
+                <div class="food-item">
+                  <strong>{{ food.name }}</strong>
+                  @if (food.description) { <p>{{ food.description }}</p> }
+                </div>
+              }
+            </article>
+          }
+          @if (bestTimeMonths) {
+            <article class="trip-glass-panel guide-content-card">
+              <span class="trip-panel-icon" aria-hidden="true">☼</span>
+              <span class="kicker">BEST TIME TO VISIT</span>
+              <h3>{{ bestTimeMonths }}</h3>
+              @if (bestTimeWeather) { <p>{{ bestTimeWeather }}</p> }
+            </article>
+          }
+          @if (contentTravelTips.length > 0 || destination?.travelTips) {
+            <article class="trip-glass-panel guide-content-card">
+              <span class="trip-panel-icon" aria-hidden="true">✦</span>
+              <span class="kicker">PRACTICAL TIPS</span>
+              <ul class="gold-bullet-list">
+                @for (tip of contentTravelTips.length > 0 ? contentTravelTips : contentItems(destination?.travelTips); track tip) { <li>{{ tip }}</li> }
+              </ul>
+            </article>
+          }
+          @if (thingsToCarry.length > 0) {
+            <article class="trip-glass-panel guide-content-card">
+              <span class="trip-panel-icon" aria-hidden="true">⌑</span>
+              <span class="kicker">WHAT TO CARRY</span>
+              <ul class="gold-bullet-list">@for (item of thingsToCarry; track item) { <li>{{ item }}</li> }</ul>
+            </article>
+          }
+          @if (contentDos.length > 0) {
+            <article class="trip-glass-panel guide-content-card">
+              <span class="trip-panel-icon" aria-hidden="true">✓</span>
+              <span class="kicker">DO</span>
+              <ul class="gold-bullet-list">@for (item of contentDos; track item) { <li>{{ item }}</li> }</ul>
+            </article>
+          }
+          @if (contentDonts.length > 0) {
+            <article class="trip-glass-panel guide-content-card">
+              <span class="trip-panel-icon" aria-hidden="true">–</span>
+              <span class="kicker">DON’T</span>
+              <ul class="gold-bullet-list">@for (item of contentDonts; track item) { <li>{{ item }}</li> }</ul>
+            </article>
+          }
+          @if (destination?.helplineNumbers) {
+            <article class="trip-glass-panel guide-content-card">
+              <span class="trip-panel-icon" aria-hidden="true">☎</span>
+              <span class="kicker">LOCAL HELPLINES</span>
+              <ul class="gold-bullet-list">@for (number of contentItems(destination?.helplineNumbers); track number) { <li>{{ number }}</li> }</ul>
+            </article>
+          }
+        </div>
+
+        @if (faqs.length > 0) {
+          <section class="trip-content-section">
+            <div class="trip-section-heading compact">
+              <div><span class="kicker">GOOD TO KNOW</span><h2>Frequently asked questions</h2></div>
+            </div>
+            <div class="faq-list">
+              @for (faq of faqs; track faq.question) {
+                <details class="trip-glass-panel faq-item">
+                  <summary>{{ faq.question }}<span aria-hidden="true">＋</span></summary>
+                  <p>{{ faq.answer }}</p>
+                </details>
+              }
+            </div>
+          </section>
+        }
+      </section>
+    }
+  </main>
+</div>

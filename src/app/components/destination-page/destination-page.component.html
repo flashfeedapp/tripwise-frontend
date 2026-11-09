@@ -1,0 +1,26 @@
+<div class="page-shell destination-page-shell">
+  <header class="topbar">
+    <a class="brand" routerLink="/" aria-label="TripWise India home">
+      <span class="brandmark" aria-hidden="true">✦</span>
+      <span>TripWise India<small>TRAVEL, THOUGHTFULLY</small></span>
+    </a>
+    <a class="text-link destination-back-link" routerLink="/">← All destinations</a>
+  </header>
+
+  <main>
+    @if (loading) {
+      <section class="api-state" aria-live="polite">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <p>Loading destination details…</p>
+      </section>
+    } @else if (errorMessage) {
+      <section class="api-state error-state" role="alert">
+        <h1>Destination details unavailable</h1>
+        <p>{{ errorMessage }}</p>
+        <button class="primary" type="button" (click)="retry()">Try again</button>
+      </section>
+    } @else if (destination; as place) {
+      <app-destination-guide [destination]="place" [showPlanCta]="true" />
+    }
+  </main>
+</div>

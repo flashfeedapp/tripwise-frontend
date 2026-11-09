@@ -1,0 +1,100 @@
+<div
+  #heroBackdrop
+  class="landing-background"
+  [class.image-unavailable]="failedHeroImageUrls.size >= heroSlides.length"
+  aria-hidden="true"
+>
+  @for (layer of backgroundLayers; track layer) {
+    <div
+      class="landing-background-layer"
+      [class.active]="activeHeroLayer === layer"
+      [style.background-image]="heroBackground(heroLayerIndices[layer])"
+    ></div>
+  }
+  <div class="landing-background-overlay"></div>
+</div>
+
+<div class="shell" id="top">
+  <header class="topbar">
+    <a class="brand" routerLink="/" aria-label="TripWise India home">
+      <span class="brandmark" aria-hidden="true">✦</span>
+      <span>TripWise India<small>TRAVEL, THOUGHTFULLY</small></span>
+    </a>
+    <a class="landing-nav-link" href="#discover">Explore destinations <span aria-hidden="true">↘</span></a>
+  </header>
+
+  <main>
+    <section class="hero landing-hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <span class="eyebrow"><span aria-hidden="true">✦</span> A JOURNEY THROUGH INDIA</span>
+        <h1 id="hero-title">Discover the extraordinary <em>India.</em></h1>
+        <p>Find a place that stays with you. Explore thoughtful guides, local stories and journeys made around you.</p>
+        <a class="hero-cta" href="#discover">Find your next escape <span aria-hidden="true">→</span></a>
+        <div class="hero-note">
+          <span class="hero-note-mark" aria-hidden="true">✦</span>
+          <span>Meaningful journeys, rooted in local destination knowledge.</span>
+        </div>
+      </div>
+      @if (heroSlides[activeHeroIndex]; as activeSlide) {
+        <div class="hero-destination-credit">
+          <span>NOW DREAMING OF</span>
+          <strong>{{ activeSlide.name }}</strong>
+          <small>{{ activeSlide.state }}</small>
+        </div>
+      }
+      @if (heroSlides.length > 1) {
+        <div class="hero-indicators landing-hero-indicators" role="group" aria-label="Choose a destination photograph">
+          @for (slide of heroSlides; track slide.name; let index = $index) {
+            <button
+              type="button"
+              class="hero-indicator"
+              [class.active]="index === activeHeroIndex"
+              [attr.aria-label]="'Show ' + slide.name"
+              [attr.aria-pressed]="index === activeHeroIndex"
+              (click)="selectHeroSlide(index)"
+            ></button>
+          }
+        </div>
+      }
+    </section>
+
+    @if (loading) {
+      <section class="api-state" aria-live="polite">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <p>Finding destinations for you…</p>
+      </section>
+    } @else if (errorMessage) {
+      <section class="api-state error-state" role="alert">
+        <h2>We couldn’t load destinations</h2>
+        <p>{{ errorMessage }}</p>
+        <button class="primary" type="button" (click)="retry()">Try again</button>
+      </section>
+    } @else if (destinations.length === 0) {
+      <section class="api-state" role="status">
+        <h2>No destinations are available yet</h2>
+        <p>Please check back when the destination catalogue is ready.</p>
+      </section>
+    } @else {
+      <app-destination-discovery
+        [categories]="categories"
+        [activeCategory]="activeCategory"
+        [states]="states"
+        [activeState]="activeState"
+        [destinations]="visibleDestinations"
+        [searchQuery]="searchQuery"
+        (categoryChange)="setCategory($event)"
+        (stateChange)="setState($event)"
+        (searchChange)="updateSearch($event)"
+        (clearFilters)="clearFilters()"
+        (destinationSelect)="openDestination($event)"
+      />
+    }
+  </main>
+</div>
+
+<footer class="footer">
+  <div class="shell footer-inner">
+    <a class="brand" routerLink="/"><span class="brandmark" aria-hidden="true">✦</span><span>TripWise India</span></a>
+    <div><strong>Make room for the journey.</strong><p>A simple travel discovery concept · Phase 1 preview</p></div>
+  </div>
+</footer>

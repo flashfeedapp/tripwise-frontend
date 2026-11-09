@@ -1,0 +1,128 @@
+@if (destination; as place) {
+  <app-destination-backdrop [destination]="place" />
+}
+
+<div class="page-shell trip-flow-shell" [class.immersive-flow]="destination">
+  <header class="topbar">
+    <a class="brand" routerLink="/" aria-label="TripWise India home">
+      <span class="brandmark" aria-hidden="true">✦</span>
+      <span>TripWise India<small>TRAVEL, THOUGHTFULLY</small></span>
+    </a>
+    @if (destination) {
+      <a class="text-link" [routerLink]="['/destinations', destination.id]">← Destination guide</a>
+    }
+  </header>
+
+  <main class="flow-content">
+    @if (loading) {
+      <section class="api-state" aria-live="polite">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <p>Loading available trip plans…</p>
+      </section>
+    } @else if (errorMessage) {
+      <section class="api-state error-state" role="alert">
+        <h1>Trip plans unavailable</h1>
+        <p>{{ errorMessage }}</p>
+        <button class="primary" type="button" (click)="retry()">Try again</button>
+      </section>
+    } @else if (destination; as place) {
+      <a class="back-link" [routerLink]="['/destinations', place.id]">← {{ place.name }}</a>
+      <section class="flow-heading">
+        <div class="kicker">Plan your time in {{ place.state }}</div>
+        <h1>Build your {{ place.name }} trip</h1>
+        <p>Choose your starting point, group size and a plan returned by the destination service.</p>
+      </section>
+
+      <form class="selection-form" (ngSubmit)="continueToCompare()" #tripForm="ngForm" novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label for="starting-city">Starting city</label>
+            <input
+              id="starting-city"
+              name="startingCity"
+              type="text"
+              autocomplete="address-level2"
+              placeholder="e.g. Hyderabad"
+              required
+              minlength="2"
+              maxlength="80"
+              [(ngModel)]="startingCity"
+              #cityControl="ngModel"
+            >
+            @if (cityControl.invalid && (cityControl.touched || cityControl.dirty)) {
+              <small class="validation">Enter a starting city with at least 2 characters.</small>
+            }
+          </div>
+          <div class="field">
+            <label for="travellers">Number of travellers</label>
+            <input
+              id="travellers"
+              name="travellers"
+              type="number"
+              min="1"
+              max="20"
+              step="1"
+              required
+              [(ngModel)]="travellers"
+              #travellerControl="ngModel"
+            >
+            @if (travellerControl.invalid && (travellerControl.touched || travellerControl.dirty)) {
+              <small class="validation">Choose a whole number from 1 to 20.</small>
+            }
+          </div>
+        </div>
+
+        <div class="plan-list">
+          <div class="section-head">
+            <div><div class="kicker">Available from the destination service</div><h2>Pick your travel style</h2></div>
+          </div>
+          @if (plans.length > 0) {
+            <div class="plan-options">
+              @for (plan of plans; track plan.id) {
+                <button
+                  class="plan-option"
+                  [class.selected]="selectedPlanType === plan.planType"
+                  [attr.aria-pressed]="selectedPlanType === plan.planType"
+                  [attr.aria-label]="'Select ' + plan.title"
+                  type="button"
+                  (click)="selectPlan(plan.planType)"
+                >
+                  <span class="plan-select-mark" aria-hidden="true">{{ selectedPlanType === plan.planType ? '✓' : '+' }}</span>
+                  <span class="plan-option-content">
+                    <strong>{{ plan.title }}</strong>
+                    <span>{{ plan.description }}</span>
+                    <small><span aria-hidden="true">◷</span> {{ plan.durationDays }} {{ plan.durationDays === 1 ? 'day' : 'days' }} · {{ formatPlanType(plan.planType) }}</small>
+                    <span class="plan-cost-breakdown">
+                      <span>Stay <b>{{ formatCurrency(plan.estimatedStayCost) }}</b></span>
+                      <span>Food <b>{{ formatCurrency(plan.estimatedFoodCost) }}</b></span>
+                      <span>Activities <b>{{ formatCurrency(plan.estimatedActivityCost) }}</b></span>
+                    </span>
+                  </span>
+                  <span class="plan-estimate">
+                    <small>Estimated per person</small>
+                    <strong>{{ formatCurrency(planCostPerPerson(plan)) }}</strong>
+                    <small>Stay, food & activities</small>
+                    @if (planCostForTravellers(plan) !== null) {
+                      <span class="group-estimate">{{ formatCurrency(planCostForTravellers(plan)!) }} for {{ travellers }} {{ travellers === 1 ? 'traveller' : 'travellers' }}</span>
+                    }
+                  </span>
+                </button>
+              }
+            </div>
+          } @else {
+            <div class="empty" role="status">There are no active trip plans for this destination yet.</div>
+          }
+        </div>
+        @if (formError) {
+          <p class="form-error" role="alert">{{ formError }}</p>
+        }
+        <div class="selection-actions">
+          <p>Plan costs are per-person estimates from the destination service. The group preview uses those plan values × travellers; travel fares are compared separately.</p>
+          <button class="primary" type="submit" [disabled]="submitting || plans.length === 0">
+            {{ submitting ? 'Opening comparison…' : 'Compare travel options' }} <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </form>
+    }
+  </main>
+</div>

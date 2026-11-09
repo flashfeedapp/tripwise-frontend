@@ -1,0 +1,18 @@
+<div
+  #backdrop
+  class="destination-page-background"
+  [class.image-unavailable]="photos.length === 0"
+  aria-hidden="true"
+>
+  @for (photo of photos; track photo.id ?? photo.imageUrl; let index = $index) {
+    <img
+      class="destination-page-background-image"
+      [class.active]="index === activeIndex"
+      [src]="photo.imageUrl"
+      alt=""
+      [attr.fetchpriority]="index === 0 ? 'high' : 'auto'"
+      (error)="onImageError($event)"
+    >
+  }
+  <span class="destination-page-background-fallback">Destination photography unavailable</span>
+</div>

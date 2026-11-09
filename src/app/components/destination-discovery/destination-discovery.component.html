@@ -1,0 +1,91 @@
+<section class="section" id="discover" aria-labelledby="discover-title">
+  <div class="section-head">
+    <div>
+      <div class="kicker">Discover somewhere new</div>
+      <h2 id="discover-title">What are you in the mood for?</h2>
+    </div>
+    <p>Browse real destinations from our catalogue, then find the details that speak to you.</p>
+  </div>
+
+  <div class="categories" role="group" aria-label="Destination categories">
+    @for (category of categories; track category.id) {
+      <button
+        class="category"
+        [class.active]="activeCategory === category.id"
+        [attr.aria-pressed]="activeCategory === category.id"
+        type="button"
+        (click)="categoryChange.emit(category.id)"
+      >
+        <span class="emoji" aria-hidden="true">{{ category.emoji }}</span>
+        <b>{{ category.name }}</b>
+        <small>Explore destinations</small>
+      </button>
+    }
+  </div>
+
+  <div class="dest-head">
+    <h3>{{ categoryHeading }}</h3>
+    <span>{{ destinations.length }} {{ destinations.length === 1 ? 'destination' : 'destinations' }}</span>
+  </div>
+  <div class="destination-filters">
+    <label class="destination-search">
+      <span aria-hidden="true">⌕</span>
+      <span class="visually-hidden">Search destinations</span>
+      <input
+        type="search"
+        placeholder="Search by destination, state or season"
+        [value]="searchQuery"
+        (input)="onSearchInput($event)"
+      >
+    </label>
+    <label class="destination-state-filter">
+      <span class="visually-hidden">Filter by state</span>
+      <select [value]="activeState" (change)="onStateChange($event)">
+        <option value="ALL">All states</option>
+        @for (state of states; track state) {
+          <option [value]="state">{{ state }}</option>
+        }
+      </select>
+    </label>
+    @if (activeCategory !== 'ALL' || activeState !== 'ALL' || searchQuery) {
+      <button class="clear-filters" type="button" (click)="clearFilters.emit()">Clear filters</button>
+    }
+  </div>
+  @if (destinations.length > 0) {
+    <div class="destinations">
+      @for (destination of destinations; track destination.id) {
+        <button class="dest-card" type="button" (click)="destinationSelect.emit(destination)" [attr.aria-label]="'Explore ' + destination.name + ', ' + destination.state">
+          <span class="dest-image" [class.photo-unavailable]="!destination.images.hero[0]?.imageUrl">
+            @if (destination.images.hero[0]?.imageUrl; as imageUrl) {
+              <img
+                [src]="imageUrl"
+                [alt]="destination.name + ', ' + destination.state"
+                loading="lazy"
+                (error)="onImageError($event)"
+              >
+            }
+            <span class="destination-card-photo-unavailable">Destination photography unavailable</span>
+            <span class="dest-tag">{{ categoryLabel(destination.category) }}</span>
+          </span>
+          <span class="dest-body">
+            <span class="dest-title">{{ destination.name }}</span>
+            @if (destination.shortDescription) {
+              <span class="dest-description">{{ destination.shortDescription }}</span>
+            }
+            @if (destination.bestSeason) {
+              <span class="dest-season"><span aria-hidden="true">☀</span> Best season · {{ destination.bestSeason }}</span>
+            }
+            <span class="dest-bottom">
+              <span>{{ destination.state }}</span>
+              <span class="destination-action">View guide <span class="arrow" aria-hidden="true">↗</span></span>
+            </span>
+          </span>
+        </button>
+      }
+    </div>
+  } @else {
+    <div class="empty" role="status">
+      {{ searchQuery || activeState !== 'ALL' || activeCategory !== 'ALL' ? 'No destinations match these filters. Try changing or clearing them.' : 'No destinations are available in this category.' }}
+    </div>
+  }
+</section>

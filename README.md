@@ -1,59 +1,34 @@
-# TourGuideApp
+# TripWise India
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.1.6.
+TripWise India is an Angular 20 travel-planning frontend backed by the existing Spring Boot REST API. Destination, plan and cost data are fetched from the backend; the frontend does not contain destination or price fixtures.
 
-## Development server
+## Run locally
 
-To start a local development server, run:
-
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Start the Spring Boot API on `http://localhost:8080`, then run:
 
 ```bash
-ng generate component component-name
+npm start
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Open `http://localhost:4200/`. Angular's development proxy forwards `/api` requests to `http://localhost:8080`, avoiding a browser cross-origin request.
+
+## Routes and data
+
+- `/` loads destinations and category values from `GET /api/destinations`.
+- `/destinations/:id` loads destination overview information from `GET /api/destinations/{id}`.
+- `/destinations/:id/plans` loads available plans from `GET /api/destinations/{destinationId}/plans`.
+- `/trips/compare` submits the selected values and displays the response from `POST /api/destinations/{destinationId}/plans/calculate`.
+- The request body includes `startingCity`, `destinationId`, `planType` and `travellers`.
+
+The running API's OpenAPI specification does not expose the supplied `/api/trips/calculate` path. Its actual calculation operation is `/api/destinations/{destinationId}/plans/calculate`, which the frontend uses.
+
+The API base URL is configured in `src/environments/environment.ts` and `src/environments/environment.production.ts`. Both default to `/api`; local development resolves this through `proxy.conf.json`. Production deployments should route `/api` to the Spring Boot service through their reverse proxy or update the production environment URL.
+
+Optional destination image, Do/Don't and helpline fields are rendered only when the backend returns values for them.
+
+## Build and tests
 
 ```bash
-ng generate --help
+npm run build
+npm test -- --watch=false --browsers=ChromeHeadless
 ```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
