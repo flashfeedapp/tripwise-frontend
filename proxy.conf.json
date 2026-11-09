@@ -1,6 +1,6 @@
 {
   "/api": {
-    "target": "http://localhost:8080",
+    "target": "https://tripwise-backend-r3bv.onrender.com/",
     "secure": false,
     "changeOrigin": true
   }
